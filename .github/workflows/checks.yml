@@ -50,16 +50,17 @@ jobs:
           fi
           echo "Nothing found."
       # The private word list lives in a repository secret, so the words never appear in the
-      # repository itself.  GitHub doesn't pass secrets to pull requests from forks, so this
-      # step is skipped there.  It runs again on main after merging.
+      # repository itself.  GitHub doesn't pass secrets to pull requests from forks or from
+      # Dependabot, so this step is skipped there.  It runs again on main after merging.
       - name: Look for personal or private details
         env:
           SCRUB_PATTERN: ${{ secrets.SCRUB_PATTERN }}
           FROM_FORK: ${{ github.event.pull_request.head.repo.fork }}
+          ACTOR: ${{ github.actor }}
         run: |
           if [ -z "$SCRUB_PATTERN" ]; then
-            if [ "$FROM_FORK" = "true" ]; then
-              echo "::notice::Skipped on a pull request from a fork.  It runs on main after merging."
+            if [ "$FROM_FORK" = "true" ] || [ "$ACTOR" = "dependabot[bot]" ]; then
+              echo "::notice::Skipped:  no secrets on pull requests from forks or Dependabot.  It runs on main after merging."
               exit 0
             fi
             echo "::error::The SCRUB_PATTERN secret isn't set, so nothing was checked."
