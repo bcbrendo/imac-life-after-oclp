@@ -1,0 +1,24 @@
+name: Something in the guide is wrong
+description: A label that doesn't match the screen, a command that fails, a missing warning, a broken link.
+labels: ["guide"]
+body:
+  - type: input
+    id: where
+    attributes:
+      label: Where
+      description: The file, part, and step number.
+      placeholder: README.md, Part 5, step 9
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What's wrong
+      description: What the guide says, and what you saw instead.  Quote on-screen text exactly if you can.
+    validations:
+      required: true
+  - type: input
+    id: setup
+    attributes:
+      label: Your setup
+      placeholder: iMac15,1, Kubuntu 26.04.1, macOS 15 with OCLP

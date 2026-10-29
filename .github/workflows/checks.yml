@@ -1,0 +1,77 @@
+name: Checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  shellcheck:
+    name: Shellcheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+        with:
+          persist-credentials: false
+      - name: Lint the scripts
+        working-directory: scripts
+        run: shellcheck -x -s bash *.sh lib/common.sh
+
+  privacy:
+    name: Privacy scrub
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+        with:
+          persist-credentials: false
+      # Konsave profiles (.knsv) are zip files, so unpack them to check what's inside.
+      - name: Unpack archives
+        run: |
+          mkdir -p "$RUNNER_TEMP/unpacked"
+          find . -name '*.knsv' -not -path './.git/*' -print0 | while IFS= read -r -d '' f; do
+            mkdir -p "$RUNNER_TEMP/unpacked/${f#./}"
+            unzip -q -o "$f" -d "$RUNNER_TEMP/unpacked/${f#./}"
+          done
+      # Works without secrets, so it also runs on pull requests from forks.
+      - name: Look for machine-specific details
+        run: |
+          # IDs, paths under a real home folder, and email addresses.  Report file and line only.
+          pattern='[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|/home/[a-z_][a-z0-9_-]*/|[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}'
+          hits=$(grep -rnIE "$pattern" --exclude-dir=.git --exclude='*.knsv' . "$RUNNER_TEMP/unpacked" \
+            | grep -vE '/home/you/|users\.noreply\.github\.com' | cut -d: -f1,2 || true)
+          if [ -n "$hits" ]; then
+            while IFS=: read -r file line; do
+              echo "::error file=${file#./},line=$line::Possible ID, home folder path, or email address"
+            done <<< "$hits"
+            exit 1
+          fi
+          echo "Nothing found."
+      # The private word list lives in a repository secret, so the words never appear in the
+      # repository itself.  GitHub doesn't pass secrets to pull requests from forks, so this
+      # step is skipped there.  It runs again on main after merging.
+      - name: Look for personal or private details
+        env:
+          SCRUB_PATTERN: ${{ secrets.SCRUB_PATTERN }}
+          FROM_FORK: ${{ github.event.pull_request.head.repo.fork }}
+        run: |
+          if [ -z "$SCRUB_PATTERN" ]; then
+            if [ "$FROM_FORK" = "true" ]; then
+              echo "::notice::Skipped on a pull request from a fork.  It runs on main after merging."
+              exit 0
+            fi
+            echo "::error::The SCRUB_PATTERN secret isn't set, so nothing was checked."
+            exit 1
+          fi
+          # Print file and line number only, never the matching text.
+          hits=$(grep -rniE "$SCRUB_PATTERN" --exclude-dir=.git --exclude=LICENSE-docs --exclude='*.knsv' \
+            . "$RUNNER_TEMP/unpacked" | cut -d: -f1,2 || true)
+          if [ -n "$hits" ]; then
+            while IFS=: read -r file line; do
+              echo "::error file=${file#./},line=$line::Possible personal or private detail"
+            done <<< "$hits"
+            exit 1
+          fi
+          echo "Nothing found."

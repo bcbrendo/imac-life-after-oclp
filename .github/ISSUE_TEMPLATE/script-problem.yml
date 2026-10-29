@@ -1,0 +1,46 @@
+name: Script problem
+description: A script failed, did something unexpected, or its --undo didn't put things back.
+labels: ["script"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        If a script could damage a system or lose data, please report it privately instead.  (See SECURITY.md.)
+        Please remove anything personal from pasted output, such as your username or computer name.
+  - type: dropdown
+    id: script
+    attributes:
+      label: Which script
+      options:
+        - broadcom-wifi.sh
+        - check-hardware.sh
+        - install-apps.sh
+        - remove-extras.sh
+        - thunderbolt-e2e.sh
+        - wl-clipboard-build.sh
+    validations:
+      required: true
+  - type: input
+    id: command
+    attributes:
+      label: The command you ran
+      placeholder: ./install-apps.sh --dry-run
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: Output
+      description: Paste the output, including any red "Stopped" message.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+  - type: input
+    id: setup
+    attributes:
+      label: Your setup
+      placeholder: iMac15,1, Kubuntu 26.04.1

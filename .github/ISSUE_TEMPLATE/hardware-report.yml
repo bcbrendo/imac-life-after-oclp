@@ -1,0 +1,43 @@
+name: Hardware report
+description: Tell us how the guide went on your iMac, especially an untested model.
+title: "Hardware report: "
+labels: ["hardware report"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you.  Reports from other models, especially the Late 2015 iMac (iMac17,1), help everyone.
+        Please remove anything personal from pasted output, such as your username or computer name.
+  - type: input
+    id: model
+    attributes:
+      label: Model identifier
+      description: From **About This Mac**, then **System Report**, or from `check-hardware.sh`.
+      placeholder: iMac17,1
+    validations:
+      required: true
+  - type: input
+    id: kubuntu
+    attributes:
+      label: Kubuntu version
+      placeholder: Kubuntu 26.04.1 LTS
+    validations:
+      required: true
+  - type: textarea
+    id: check-hardware
+    attributes:
+      label: Output of check-hardware.sh
+      description: Run `~/imac-life-after-oclp/scripts/check-hardware.sh` and paste the output.  It only reads.
+      render: text
+  - type: textarea
+    id: worked
+    attributes:
+      label: What worked
+      placeholder: Wi-Fi after broadcom-wifi.sh, 4K at 150%, Thunderbolt networking…
+  - type: textarea
+    id: didnt
+    attributes:
+      label: What didn't work, or worked differently
+      description: Which part and step, what you expected, and what happened.
+    validations:
+      required: true

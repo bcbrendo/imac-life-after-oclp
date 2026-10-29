@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question or idea
+    url: https://github.com/bcbrendo/imac-life-after-oclp/discussions
+    about: Ask a question or share an idea in Discussions.
+  - name: Something that could harm a system
+    url: https://github.com/bcbrendo/imac-life-after-oclp/security/advisories/new
+    about: Report it privately.  See SECURITY.md.
