@@ -48,7 +48,11 @@ Toshy recognises Apple keyboards by name.  It treats any other keyboard as a Win
 
 Edits between Toshy's `SLICE_MARK` lines survive Toshy updates.  Edits anywhere else are lost.
 
-To undo:  delete the line and restart Toshy.
+**Over Bluetooth, the name can change.**  Many keyboards report a different name over Bluetooth than over a cable, often with the pairing slot added, such as `Example K96-2 Keyboard`.  Run `toshy-devices` once for each way you connect, and add a line for every name.  If the keyboard has several Bluetooth slots, add a line for each slot's name too.
+
+To pair a keyboard like this, switch it to Bluetooth mode, then hold its pairing key (often **Fn** with **1**, **2**, or **3**) for a few seconds, until its light flashes quickly.  Use a slot that isn't already paired with another computer.  Otherwise the keyboard reconnects to that computer and never shows up in **System Settings**, then **Bluetooth**.
+
+To undo:  delete the lines and restart Toshy.
 
 ### Brightness keys on a keyboard in Mac mode
 
@@ -78,33 +82,35 @@ To undo:  remove the rule, set the diagnostics key back to `Key.F15`, and restar
 
 On a Mac, the Option key types extra characters:  **Option+Shift+-** an em dash (—), **Option+-** an en dash (–), **Option+8** a bullet (•), **Option+G** ©, **Option+2** ™, and many more.  On Linux they type nothing special.
 
-Toshy has an "Option-key special characters" feature, but it types each character through a Ctrl+Shift+U code that only works with an input method, such as IBus or Fcitx, running.  Kubuntu doesn't run one by default.  The keyboard layout below works in every app instead.
-
 1. 🟡 Open **System Settings**, then **Keyboard**.  Add the layout **English (Macintosh, ABC, ANSI)**, listed under English (US).  Remove your other layouts, and apply.
 2. 🟢 Log out and back in.  The new layout only takes full effect after that.
 
-In this layout, the *right* Option key gives the Mac's Option characters:  —, –, •, ©, ™, °, and the rest.  The left Option key stays an ordinary Alt key, which Toshy needs for its shortcuts.  To make every Option character work from the left Option key too:
+That's all you need with a current version of Toshy.  The layout puts the Mac's characters on the *right* Option key, and Toshy's **Level3 via Left Alt** feature makes the left Option key type them too.  It's on by default.  You'll find it in Toshy's tray menu, under **Overlays**.
 
-3. 🟡 In `toshy_config.py`, in the section marked `user_apps`, add:
+Option with the arrow keys and Delete keeps working as before, for moving and deleting by word.  One trade-off:  Linux apps that open menus with Alt plus a letter (Alt+F for **File**, for example) no longer respond to the left Option key.  Mac habits don't use those.
+
+Toshy has a separate "Option-key special characters" setting.  Leave it off.  It types each character through a Ctrl+Shift+U code, which only works with an input method, such as IBus or Fcitx, running.  Kubuntu doesn't run one by default.
+
+To undo:  switch back to your old layout in **System Settings**, then **Keyboard**, and log out and back in.
+
+#### Keeping an Option shortcut as a shortcut
+
+Some apps use Option plus a key as a shortcut, and the layout turns it into a character instead.  For example, **Option+/** opens the help menu in Google Docs, but the layout types ÷.  A rule that sends the key combination on unchanged takes priority over Toshy's built-in one.
+
+1. 🟡 In `toshy_config.py`, in the section marked `user_apps`, add:
 
    ```python
-   # Send Option+key (and Option+Shift+key) from the left Option key as right Option.
-   _opt_keys = [*"1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ", "Minus", "Equal", "Left_Brace", "Right_Brace",
-                "Backslash", "Semicolon", "Apostrophe", "Comma", "Dot", "Slash", "Grave"]
-   keymap("User Option characters", {
-       **{C(f"LAlt-{k}"): C(f"RAlt-{k}") for k in _opt_keys},
-       **{C(f"Shift-LAlt-{k}"): C(f"Shift-RAlt-{k}") for k in _opt_keys},
+   keymap("User Option shortcuts", {
+       C("LAlt-Slash"):            C("LAlt-Slash"),                # Option+/ stays a shortcut, not ÷
    }, when = lambda ctx:
        cnfg.screen_has_focus and
        not ctx_app_is_remote
    )
    ```
 
-4. 🟢 Restart Toshy:  `toshy-services-restart`
+2. 🟢 Restart Toshy:  `toshy-services-restart`
 
-Option with the arrow keys and Delete keeps working as before, for moving and deleting by word.  One trade-off:  Linux apps that open menus with Alt plus a letter (Alt+F for **File**, for example) no longer respond to the left Option key.  Mac habits don't use those.
-
-To undo:  remove the rule, restart Toshy, and switch back to your old layout.
+Add a line for each Option shortcut you want to keep.  To undo, remove the rule and restart Toshy.
 
 ### Lock the screen with Control+⌘+Q
 
@@ -125,6 +131,48 @@ Toshy has this shortcut for GNOME, but not for KDE.
 2. 🟢 Restart Toshy:  `toshy-services-restart`
 
 **Super+L** is KDE's own lock shortcut.  The two lines cover the two ways Toshy passes the Control key on.
+
+To undo:  remove the rule and restart Toshy.
+
+### Paste as plain text with ⌘⌥⇧V
+
+On a Mac, **⌘⌥⇧V** pastes without formatting ("Paste and Match Style").  Web browsers and most chat apps on Linux do the same with Ctrl+Shift+V, so one rule brings the Mac shortcut across.
+
+1. 🟡 In `toshy_config.py`, in the section marked `user_apps`, add:
+
+   ```python
+   keymap("User paste as plain text", {
+       C("Shift-Alt-RC-v"):        C("Shift-C-v"),                 # Cmd+Opt+Shift+V: paste without formatting
+   }, when = lambda ctx:
+       cnfg.screen_has_focus and
+       not ctx_app_is_remote
+   )
+   ```
+
+2. 🟢 Restart Toshy:  `toshy-services-restart`
+
+To undo:  remove the rule and restart Toshy.
+
+### Google Docs, Sheets, and Slides
+
+On Linux, Google's apps use their Windows-style shortcuts.  Toshy's ⌘-to-Ctrl swap covers most of them, but a few Mac shortcuts differ completely.  Strikethrough is one:  ⌘⇧X on a Mac, but Alt+Shift+5 on Linux.
+
+This rule translates it, only in browser tabs whose title shows they're Google Docs, Sheets, or Slides:
+
+1. 🟡 In `toshy_config.py`, in the section marked `user_apps`, add:
+
+   ```python
+   keymap("User Google Docs", {
+       C("Shift-RC-x"):            C("Shift-Alt-5"),               # Cmd+Shift+X: strikethrough
+   }, when = lambda ctx:
+       cnfg.screen_has_focus and
+       matchProps(clas=browsers_chromeStr, name="Google (Docs|Sheets|Slides)")(ctx)
+   )
+   ```
+
+2. 🟢 Restart Toshy:  `toshy-services-restart`
+
+`browsers_chromeStr` covers Chrome, Brave, Chromium, and similar browsers.  If you find another Mac shortcut that doesn't work in Google's apps, add a line for it in the same rule.  Google lists its shortcuts for each system in each app's **Help** menu.
 
 To undo:  remove the rule and restart Toshy.
 
