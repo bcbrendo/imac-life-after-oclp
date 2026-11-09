@@ -23,9 +23,11 @@ Deskflow sends every keystroke and pointer movement over the network.  The conne
 
 ## Install Deskflow
 
-1. 🟡 On the iMac, install Deskflow.  Either:
-    - Install Kubuntu's own package:  `sudo apt install deskflow`.  It updates with the rest of the system, but can be a version behind.  The tested iMac uses this one.
-    - Or download the `ubuntu` `.deb` for your release from [the releases page](https://github.com/deskflow/deskflow/releases/latest).  `scripts/install-apps.sh` offers this.
+1. 🟡 On the iMac, install Kubuntu's own Deskflow package:  `sudo apt install deskflow`.  `scripts/install-apps.sh` offers it too.  It updates with the rest of the system.  The tested iMac uses it (version 1.26).
+
+> **Don't use Deskflow 1.27 on the iMac yet** (the newer `.deb` on Deskflow's releases page).  1.27 drops wl-clipboard and uses KDE's own clipboard sharing instead.  KDE Plasma 6.6 doesn't offer that to a Deskflow server, so with the iMac as server, nothing copied crosses in either direction.  This should change with a later Plasma release.  The Mac can run 1.27:  the two versions work together.  If you've already tried 1.27, see [Troubleshooting](#troubleshooting).
+
+
 2. 🟡 On the Mac, download the `macos-arm64.dmg` from the same page (for Apple Silicon).  Drag Deskflow into **Applications**.
 3. 🟡 On the Mac, allow Deskflow under **Accessibility**, in **System Settings**, then **Privacy & Security**.
 4. 🟡 If the Mac is the server, also allow Deskflow under **Input Monitoring**.
@@ -171,3 +173,60 @@ The network is adding delay.  A Thunderbolt cable fixes it.
 
 **The client stopped connecting after changing settings.**
 The client may have stopped.  Click **Start** again on the client.
+
+**A pop-up says "Input Capture Started" every time the pointer moves to the Mac.**
+With the iMac as server, KDE announces each hand-over.  To silence it:
+
+1. 🟡 Open **System Settings**, then **Notifications**.
+2. 🟡 Under **Applications**, choose **KDE Portal Integration**, and turn off its pop-ups.
+
+The notices still go to the notification history.  This also hides that service's other pop-ups, such as an app starting remote control of the desktop.  To undo:  turn its pop-ups back on.
+
+**The server won't start, and Deskflow's log says "cannot bind address: Address already in use".**
+A leftover clipboard helper is holding Deskflow's network port.  Deskflow 1.26 starts a `wl-copy` process to hold copied text, and it can outlive the server.  (A known bug, [deskflow#9386](https://github.com/deskflow/deskflow/issues/9386).)
+
+1. 🟢 Check what holds the port.  In Konsole, run:
+
+   ```sh
+   ss -tlnp | grep 24800
+   ```
+
+   No output means the port is free.  A line naming `deskflow-core` means the server is running.  A line naming `wl-copy` is the leftover.
+2. 🟡 If it names `wl-copy`, stop it:
+
+   ```sh
+   pkill -f '^/usr/local/bin/wl-copy --primary'
+   ```
+
+   This only clears your last text selection, used for middle-click paste.  The normal clipboard isn't affected.
+3. 🟢 Click **Start** in Deskflow.
+
+**With the iMac as server, ⌘ shortcuts act strangely on the Mac.**
+For example, ⌘⇧V pastes instead of opening a clipboard app, or a shortcut works one day and not the next.  Toshy has stopped stepping aside on the Mac.  It knows where the pointer is from the "switch from" lines in Deskflow's log.
+
+1. 🟢 Move the pointer to the Mac and back.  Then check the log recorded it:
+
+   ```sh
+   tail -n 5 ~/.local/state/Deskflow/deskflow.log
+   ```
+
+   You should see lines starting `INFO: switch from`.
+2. 🟡 If they're there, restart Toshy:  `toshy-services-restart`
+3. 🟡 If they're missing, check **Log to file** in Deskflow's **Settings** (see [Make ⌘ work on the Mac](#make--work-on-the-mac)).  Quit Deskflow from the system tray, open it again, then restart Toshy.
+
+Restart Toshy after every Deskflow update or downgrade.
+
+**You tried Deskflow 1.27 on the iMac, then went back to 1.26.**
+The first time 1.27 runs, it converts Deskflow's settings to its own format.  1.26 doesn't understand the converted settings, so after going back, clipboard sharing and the log for Toshy stop working.
+
+1. 🟡 Go back to Kubuntu's package.  Find its version with `apt-cache policy deskflow`:  it's the one listed from `archive.ubuntu.com`.  Then install that version, for example:
+
+   ```sh
+   sudo apt install --allow-downgrades deskflow=1.26.0+dfsg-1
+   ```
+2. 🟢 Open Deskflow's **Settings** and set everything again:  **Enable clipboard sharing**, **Enable wl-clipboard support**, **Log to file** with its full path, and the log level **Info**.
+3. 🟢 Check the screen layout in the server settings.  Put the Mac's screen back if it's missing.
+4. 🟢 Quit Deskflow from the system tray, open it again, and click **Start**.
+5. 🟡 Restart Toshy:  `toshy-services-restart`
+
+If you edit `~/.config/Deskflow/Deskflow.conf` by hand instead, quit Deskflow first, or it writes its old settings back.  1.26 needs the log level as a number (`level=4` for Info).  A word such as `Info` or `Debug` silently stops the log, and Toshy with it.
