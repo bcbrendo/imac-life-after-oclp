@@ -192,13 +192,13 @@ A leftover clipboard helper is holding Deskflow's network port.  Deskflow 1.26 s
    ```
 
    No output means the port is free.  A line naming `deskflow-core` means the server is running.  A line naming `wl-copy` is the leftover.
-2. 🟡 If it names `wl-copy`, stop it:
+2. 🟡 If it names `wl-copy`, stop every copy of it.  There can be two, and they ignore a polite stop, so this forces them:
 
    ```sh
-   pkill -f '^/usr/local/bin/wl-copy --primary'
+   pkill -9 -f '^/usr/local/bin/wl-copy'
    ```
 
-   This only clears your last text selection, used for middle-click paste.  The normal clipboard isn't affected.
+   This empties the clipboard and your last text selection.  Klipper's clipboard history keeps what you copied.
 3. 🟢 Click **Start** in Deskflow.
 
 **With the iMac as server, ⌘ shortcuts act strangely on the Mac.**
