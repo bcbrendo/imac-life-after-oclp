@@ -33,8 +33,6 @@ is_online || fail "No internet connection.  Nothing was changed."
 ok "Online."
 
 is_installed() { dpkg-query -W -f='${Status}' "$1" 2>/dev/null | contains 'install ok installed'; }
-# shellcheck disable=SC1091
-CODENAME="$(. /etc/os-release; echo "${VERSION_CODENAME:-}")"
 
 # Downloads go into a private temporary folder with a random name, which is
 # deleted when the script ends, however it ends.
@@ -162,20 +160,9 @@ undo_1password() {
 }
 
 install_deskflow() {
-  [[ -n "$CODENAME" ]] || fail "Can't tell which Ubuntu release this is."
-  local url
-  url="$(curl -fsSL https://api.github.com/repos/deskflow/deskflow/releases/latest \
-    | grep -o "https://[^\"]*ubuntu-${CODENAME}-x86_64\.deb" | head -1 || true)"
-  if [[ -z "$url" ]]; then
-    warn "No Deskflow package for Ubuntu '$CODENAME' in the latest release."
-    say "Get it from https://github.com/deskflow/deskflow/releases instead.  Nothing was installed."
-    SKIPPED=1
-    return 0
-  fi
-  ensure_download_dir
-  local deb="$DL_DIR/deskflow.deb"
-  run curl -fsSLo "$deb" "$url"
-  run sudo apt-get install -y "$deb"
+  # Kubuntu's own package (1.26 on 26.04), not the newest GitHub release.  1.27 drops
+  # wl-clipboard, and KDE Plasma 6.6 can't share the clipboard with a 1.27 server.
+  run sudo apt-get install -y deskflow
   say "Next:  docs/deskflow.md walks through connecting it to the Mac."
 }
 undo_deskflow() { run sudo apt-get remove -y deskflow; }
