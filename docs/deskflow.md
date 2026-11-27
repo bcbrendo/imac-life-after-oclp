@@ -142,6 +142,22 @@ Don't install Kubuntu's `wl-clipboard` package for this.  Its version, 2.2.1, ca
 3. 🟢 On the Mac, tick **Enable clipboard sharing** in Deskflow's settings.
 4. 🟢 On the iMac, quit Deskflow completely from its icon in the system tray, then open it again.  Closing the window isn't enough:  the part that connects keeps running with the old settings.
 
+5. 🟡 Raise Deskflow's limit on open files.  Deskflow 1.26 leaves a few connections open after each clipboard transfer.  At Linux's default limit of 1,024, it runs out within hours, and the clipboard silently stops crossing while the mouse and keyboard carry on.  The highest allowed limit makes it last for weeks, and logging out resets it.  In Konsole, paste:
+
+   ```sh
+   mkdir -p ~/.config/systemd/user/app-org.deskflow.deskflow@.service.d
+   printf '[Service]\nLimitNOFILE=524288\n' > ~/.config/systemd/user/app-org.deskflow.deskflow@.service.d/open-files.conf
+   systemctl --user daemon-reload
+   ```
+
+   Then quit Deskflow from the system tray and open it again.  To check it worked:
+
+   ```sh
+   grep 'open files' /proc/$(pgrep -x deskflow-core)/limits
+   ```
+
+   The first number should be 524288.  This applies when Plasma starts Deskflow:  at login, or from the app menu.  To undo:  delete the `app-org.deskflow.deskflow@.service.d` folder, run `systemctl --user daemon-reload`, and restart Deskflow.
+
 If menus start closing as soon as they open, untick **Enable wl-clipboard support** and restart Deskflow.  Then check which `wl-copy` is in use:  `wl-copy --version` should say 2.3.0.
 
 To undo:  untick **Enable wl-clipboard support**, then run `wl-clipboard-build.sh --undo`.  The fix needs Deskflow installed with apt or from the `.deb`.  A Flatpak copy of Deskflow can't see tools installed on the system.
@@ -200,6 +216,19 @@ A leftover clipboard helper is holding Deskflow's network port.  Deskflow 1.26 s
 
    This empties the clipboard and your last text selection.  Klipper's clipboard history keeps what you copied.
 3. 🟢 Click **Start** in Deskflow.
+
+**Copying between the machines works for a while, then stops.**
+The mouse and keyboard still cross, but copied text doesn't, in either direction.  Restarting Deskflow fixes it for a few hours.  Deskflow has run out of open files.  (See step 5 of [Share the clipboard](#share-the-clipboard).)
+
+1. 🟢 Count Deskflow's open files.  In Konsole, run:
+
+   ```sh
+   ls /proc/$(pgrep -x deskflow-core)/fd | wc -l
+   grep 'open files' /proc/$(pgrep -x deskflow-core)/limits
+   ```
+
+   If the count is close to the limit's first number, that's the cause.
+2. 🟡 If the limit is still 1024, raise it as in step 5.  Either way, quit Deskflow from the system tray and open it again.
 
 **With the iMac as server, ⌘ shortcuts act strangely on the Mac.**
 For example, ⌘⇧V pastes instead of opening a clipboard app, or a shortcut works one day and not the next.  Toshy has stopped stepping aside on the Mac.  It knows where the pointer is from the "switch from" lines in Deskflow's log.
